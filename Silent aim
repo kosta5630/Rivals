@@ -1,0 +1,74 @@
+local players = game:GetService("Players")
+local camera = workspace.CurrentCamera
+local replicated_storage = game:GetService("ReplicatedStorage")
+local utility = require(replicated_storage.Modules.Utility)
+
+local function get_players()
+    local entities = {}
+
+    for _, child in workspace:GetChildren() do
+        if child:FindFirstChildOfClass("Humanoid") then
+            table.insert(entities, child)
+        elseif child.Name == "NPCs" then -- Adjust this if NPCs are in a different container
+            for _, npc in child:GetChildren() do
+                if npc.ClassName ~= "Accessory" then
+                    table.insert(entities, npc)
+                end
+            end
+        end
+    end
+    return entities
+end
+
+local function get_closest_player()
+    local closest, closest_distance = nil, math.huge
+    local character = players.LocalPlayer.Character
+
+    if not character then return end
+
+    for _, player in ipairs(get_players()) do
+        if player == players.LocalPlayer then continue end
+        if not player:FindFirstChild("HumanoidRootPart") then continue end
+
+        local position, on_screen = camera:WorldToViewportPoint(player.HumanoidRootPart.Position)
+        if not on_screen then continue end
+
+        local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+        local distance = (center - Vector2.new(position.X, position.Y)).Magnitude
+
+        if distance < closest_distance then
+            closest = player
+            closest_distance = distance
+        end
+    end
+    return closest
+end
+
+local oldRaycast = utility.Raycast
+local silentAimEnabled = false
+
+local function enableSilentAim()
+    utility.Raycast = function(...)
+        local args = { ... }
+        if #args > 0 and args[4] == 999 then -- Checks for the raycast trigger condition
+            local closest = get_closest_player()
+            if closest and closest:FindFirstChild("Head") then
+                args[3] = closest.Head.Position -- Redirect aim to enemy head
+            end
+        end
+        return oldRaycast(table.unpack(args))
+    end
+end
+
+local function disableSilentAim()
+    utility.Raycast = oldRaycast
+end
+
+-- Toggle Silent Aim
+silentAimEnabled = true -- Set to false if you want it disabled by default
+
+if silentAimEnabled then
+    enableSilentAim()
+else
+    disableSilentAim()
+end
