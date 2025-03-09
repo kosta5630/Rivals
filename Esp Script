@@ -1,0 +1,31 @@
+local players = game:GetService("Players")
+local localPlayer = players.LocalPlayer
+
+local function createESP(player)
+    if player == localPlayer then return end
+
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local highlight = Instance.new("Highlight")
+        highlight.Parent = char
+        highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Red color
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255) -- White outline
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+    end
+end
+
+local function enableESP()
+    for _, player in pairs(players:GetPlayers()) do
+        createESP(player)
+    end
+
+    players.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function()
+            createESP(player)
+        end)
+    end)
+end
+
+enableESP()
+print("[✔] ESP Enabled")
