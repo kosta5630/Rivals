@@ -1,0 +1,30 @@
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+
+-- Prevents detection of changes to raycasting
+local oldIndex = mt.__index
+mt.__index = newcclosure(function(self, key)
+    if key == "Raycast" then
+        return function(...) return oldIndex(self, key)(...) end
+    end
+    return oldIndex(self, key)
+end)
+
+-- Prevents detection of modified functions
+local oldNamecall = mt.__namecall
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if method == "Kick" or method == "Destroy" then
+        return wait(9e9) -- Blocks kicks/bans
+    end
+    return oldNamecall(self, ...)
+end)
+
+-- Detects if the anti-cheat tries to delete important objects
+game.DescendantRemoving:Connect(function(obj)
+    if obj:IsA("LocalScript") or obj:IsA("ModuleScript") then
+        obj:Clone().Parent = obj.Parent -- Restores removed scripts
+    end
+end)
+
+print("[✔] Anti-Cheat Bypass Enabled")
